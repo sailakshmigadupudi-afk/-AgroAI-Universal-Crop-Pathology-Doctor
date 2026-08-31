@@ -268,6 +268,936 @@ const ALL_MANDI_DATA = [
 let currentUser = null;
 
 // ==========================================
+// 2. Storage Helpers
+// ==========================================
+function getAccounts() {
+    const raw = localStorage.getItem('agroai_farmers_db');
+    if (!raw) {
+        return {
+            "9876543210": {
+                name: "Ramesh Patel",
+                phone: "9876543210",
+                location: "Guntur, Andhra Pradesh",
+                totalLand: 5.0,
+                password: "pass",
+                soil: "Black Cotton Soil",
+                irrigation: "Drip / Micro-Irrigation",
+                cropAllocations: [
+                    { crop: "Cotton", acres: 3.0 },
+                    { crop: "Paddy", acres: 2.0 }
+                ]
+            }
+        };
+    }
+    return JSON.parse(raw);
+}
+
+function saveAccounts(db) {
+    localStorage.setItem('agroai_farmers_db', JSON.stringify(db));
+}
+
+// ==========================================
+// 3. Authentication Handlers
+// ==========================================
+function switchAuthTab(mode) {
+    const signInBtn = document.getElementById('tabSignInBtn');
+    const signUpBtn = document.getElementById('tabSignUpBtn');
+    const signInForm = document.getElementById('signInForm');
+    const signUpForm = document.getElementById('signUpForm');
+    const titleEl = document.getElementById('authTitle');
+    const subEl = document.getElementById('authSubtitle');
+    const dict = TRANSLATIONS[currentGlobalLang] || TRANSLATIONS["English"];
+
+    if (mode === 'signin') {
+        if (signInBtn) signInBtn.classList.add('active');
+        if (signUpBtn) signUpBtn.classList.remove('active');
+        if (signInForm) signInForm.style.display = 'block';
+        if (signUpForm) signUpForm.style.display = 'none';
+        if (titleEl) titleEl.innerText = dict.authLoginTitle;
+        if (subEl) subEl.innerText = dict.authLoginSub;
+    } else {
+        if (signUpBtn) signUpBtn.classList.add('active');
+        if (signInBtn) signInBtn.classList.remove('active');
+        if (signInForm) signInForm.style.display = 'none';
+        if (signUpForm) signUpForm.style.display = 'block';
+        if (titleEl) titleEl.innerText = dict.authSignupTitle;
+        if (subEl) subEl.innerText = dict.authSignupSub;
+    }
+}
+
+function handleSignUp(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const nameEl = document.getElementById('regName');
+    const phoneEl = document.getElementById('regPhone');
+    const locEl = document.getElementById('regLocation');
+    const landEl = document.getElementById('regLandSize');
+    const passEl = document.getElementById('regPass');
+
+    const name = nameEl ? nameEl.value.trim() : "";
+    const phone = phoneEl ? phoneEl.value.trim() : "";
+    const location = locEl ? locEl.value.trim() : "Local Farm";
+    const landSize = landEl ? (parseFloat(landEl.value) || 2.0) : 2.0;
+    const password = passEl ? passEl.value.trim() : "";
+
+    if (!name || !phone || !password) {
+        alert("Please complete all registration fields.");
+        return;
+    }
+
+    const db = getAccounts();
+    if (db[phone]) {
+        alert("An account with this contact number already exists. Please Sign In.");
+        switchAuthTab('signin');
+        return;
+    }
+
+    const newFarmer = {
+        name,
+        phone,
+        location,
+        totalLand: landSize,
+        password,
+        soil: "Black Cotton Soil",
+        irrigation: "Drip / Micro-Irrigation",
+        cropAllocations: [
+            { crop: "Cotton", acres: (landSize * 0.6).toFixed(1) },
+            { crop: "Paddy", acres: (landSize * 0.4).toFixed(1) }
+        ]
+    };
+
+    db[phone] = newFarmer;
+    saveAccounts(db);
+
+    localStorage.setItem('agroai_logged_phone', phone);
+    currentUser = newFarmer;
+    alert(`✅ Account created! Welcome, ${name}`);
+    initAuthenticatedSession(newFarmer);
+}
+
+function handleSignIn(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const phoneEl = document.getElementById('loginPhone');
+    const passEl = document.getElementById('loginPass');
+
+    const phone = phoneEl ? phoneEl.value.trim() : "";
+    const password = passEl ? passEl.value.trim() : "";
+
+    if (!phone || !password) {
+        alert("Please enter both contact number and password.");
+        return;
+    }
+
+    const db = getAccounts();
+    const user = db[phone];
+
+    if (!user || user.password !== password) {
+        alert("Invalid contact number or password. Please try again.");
+        return;
+    }
+
+    localStorage.setItem('agroai_logged_phone', phone);
+    currentUser = user;
+    initAuthenticatedSession(currentUser);
+}
+
+function logoutFarmer() {
+    localStorage.removeItem('agroai_logged_phone');
+    currentUser = null;
+    stopVoicePlayback();
+    stopCamera();
+
+    const navCenter = document.getElementById('navCenterLinks');
+    const userBadge = document.getElementById('userBadge');
+    if (navCenter) navCenter.style.display = 'none';
+    if (userBadge) userBadge.style.display = 'none';
+    
+    document.getElementById('homePage').style.display = 'none';
+    document.getElementById('profilePage').style.display = 'none';
+    document.getElementById('clinicPage').style.display = 'none';
+    document.getElementById('authPage').style.display = 'block';
+
+    switchAuthTab('signin');
+}
+
+function initAuthenticatedSession(user) {
+    document.getElementById('authPage').style.display = 'none';
+    const navCenter = document.getElementById('navCenterLinks');
+    const userBadge = document.getElementById('userBadge');
+    if (navCenter) navCenter.style.display = 'flex';
+    if (userBadge) userBadge.style.display = 'flex';
+
+    const navName = document.getElementById('navUserName');
+    if (navName) navName.innerText = `👨‍🌾 ${user.name}`;
+
+    renderProfileData(user);
+    fetchLiveWeather();
+    navigatePage('home');
+}
+
+// ==========================================
+// 4. Global Language Switcher
+// ==========================================
+function changeGlobalLanguage(lang) {
+    currentGlobalLang = lang;
+    const dict = TRANSLATIONS[lang] || TRANSLATIONS["English"];
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) {
+            el.innerText = dict[key];
+        }
+    });
+
+    if (lang.includes("Telugu")) currentLangCode = "te-IN";
+    else if (lang.includes("Hindi")) currentLangCode = "hi-IN";
+    else currentLangCode = "en-US";
+
+    if (currentUser) renderMandiPrices();
+    localStorage.setItem('agroai_selected_lang', lang);
+}
+
+// ==========================================
+// 5. Page Navigation
+// ==========================================
+function navigatePage(page) {
+    const homeTab = document.getElementById('tabHome');
+    const profileTab = document.getElementById('tabProfile');
+    const clinicTab = document.getElementById('tabClinic');
+    
+    const homeView = document.getElementById('homePage');
+    const profileView = document.getElementById('profilePage');
+    const clinicView = document.getElementById('clinicPage');
+
+    if (homeTab) homeTab.classList.remove('active');
+    if (profileTab) profileTab.classList.remove('active');
+    if (clinicTab) clinicTab.classList.remove('active');
+
+    if (homeView) homeView.style.display = 'none';
+    if (profileView) profileView.style.display = 'none';
+    if (clinicView) clinicView.style.display = 'none';
+    stopCamera();
+
+    if (page === 'home') {
+        if (homeTab) homeTab.classList.add('active');
+        if (homeView) homeView.style.display = 'block';
+    } else if (page === 'profile') {
+        if (profileTab) profileTab.classList.add('active');
+        if (profileView) profileView.style.display = 'block';
+    } else if (page === 'clinic') {
+        if (clinicTab) clinicTab.classList.add('active');
+        if (clinicView) clinicView.style.display = 'block';
+    }
+}
+
+// ==========================================
+// 6. Mandi Price Engine
+// ==========================================
+function toggleAllCropPrices() {
+    showAllMandiPrices = !showAllMandiPrices;
+    renderMandiPrices();
+}
+
+function renderMandiPrices() {
+    const tableBody = document.getElementById('mandiTableBody');
+    const scopeLabel = document.getElementById('mandiScopeLabel');
+    const toggleBtn = document.getElementById('toggleMorePricesBtn');
+    const dict = TRANSLATIONS[currentGlobalLang] || TRANSLATIONS["English"];
+
+    if (!tableBody) return;
+
+    const farmerCropNames = (currentUser?.cropAllocations || []).map(c => c.crop.toLowerCase());
+    tableBody.innerHTML = "";
+    let displayedData = ALL_MANDI_DATA;
+
+    if (!showAllMandiPrices) {
+        displayedData = ALL_MANDI_DATA.filter(item => {
+            return farmerCropNames.some(fc => item.crop.toLowerCase().includes(fc) || item.cropKey.includes(fc) || fc.includes(item.cropKey));
+        });
+
+        if (displayedData.length === 0) displayedData = ALL_MANDI_DATA.slice(0, 3);
+
+        if (scopeLabel) scopeLabel.innerText = dict.txtFilteredCrops;
+        if (toggleBtn) toggleBtn.innerText = `👁️ ${dict.btnSeeMore}`;
+    } else {
+        if (scopeLabel) scopeLabel.innerText = dict.txtAllCrops;
+        if (toggleBtn) toggleBtn.innerText = `🔙 ${dict.btnSeeLess}`;
+    }
+
+    displayedData.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><b>${row.crop}</b></td>
+            <td>${row.market}</td>
+            <td>${row.price}</td>
+            <td><span class="${row.trendClass}">${row.trend}</span></td>
+        `;
+        tableBody.appendChild(tr);
+    });
+}
+
+// ==========================================
+// 7. Crop Allocations Editor
+// ==========================================
+function renderCropInputRows(allocations) {
+    const container = document.getElementById('cropAllocationList');
+    if (!container) return;
+    container.innerHTML = "";
+
+    allocations.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = "crop-row-inputs";
+        row.innerHTML = `
+            <input type="text" placeholder="Crop Name" value="${item.crop}" class="crop-name-input" style="flex: 2;">
+            <input type="number" step="0.1" placeholder="Acres" value="${item.acres}" class="crop-acres-input" style="flex: 1;" oninput="updateAllocationSummary()">
+            <button type="button" class="btn-remove-crop" onclick="removeCropRow(${index})">✕</button>
+        `;
+        container.appendChild(row);
+    });
+
+    updateAllocationSummary();
+}
+
+function addCropRow() {
+    const container = document.getElementById('cropAllocationList');
+    if (!container) return;
+    const row = document.createElement('div');
+    row.className = "crop-row-inputs";
+    row.innerHTML = `
+        <input type="text" placeholder="Crop Name" value="" class="crop-name-input" style="flex: 2;">
+        <input type="number" step="0.1" placeholder="Acres" value="1.0" class="crop-acres-input" style="flex: 1;" oninput="updateAllocationSummary()">
+        <button type="button" class="btn-remove-crop" onclick="this.parentElement.remove(); updateAllocationSummary();">✕</button>
+    `;
+    container.appendChild(row);
+    updateAllocationSummary();
+}
+
+function removeCropRow(index) {
+    const rows = document.querySelectorAll('.crop-row-inputs');
+    if (rows[index]) rows[index].remove();
+    updateAllocationSummary();
+}
+
+function updateAllocationSummary() {
+    const totalLandEl = document.getElementById('profLandSize');
+    const totalLand = totalLandEl ? (parseFloat(totalLandEl.value) || 0) : 0;
+    const acreInputs = document.querySelectorAll('.crop-acres-input');
+    
+    let allocated = 0;
+    acreInputs.forEach(input => {
+        allocated += parseFloat(input.value) || 0;
+    });
+
+    const unallocated = totalLand - allocated;
+
+    const calcTotal = document.getElementById('calcTotalLand');
+    const calcAlloc = document.getElementById('calcAllocatedLand');
+    const calcUnalloc = document.getElementById('calcUnallocatedLand');
+
+    if (calcTotal) calcTotal.innerText = `${totalLand.toFixed(1)} Acres`;
+    if (calcAlloc) calcAlloc.innerText = `${allocated.toFixed(1)} Acres`;
+    if (calcUnalloc) {
+        calcUnalloc.innerText = `${unallocated.toFixed(1)} Acres`;
+        calcUnalloc.style.color = unallocated < 0 ? "#dc2626" : "#059669";
+    }
+}
+
+// ==========================================
+// 8. Profile Rendering & Persistence
+// ==========================================
+function renderProfileData(user) {
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+
+    setVal('profName', user.name || "");
+    setVal('profPhone', user.phone || "");
+    setVal('profLocation', user.location || "");
+    setVal('profLandSize', user.totalLand || 0);
+    setVal('profSoil', user.soil || "Black Cotton Soil");
+    setVal('profIrrigation', user.irrigation || "Drip / Micro-Irrigation");
+
+    renderCropInputRows(user.cropAllocations || []);
+
+    setText('dashFarmerName', user.name);
+    setText('dashLocation', user.location);
+    setText('dashLandSize', `${user.totalLand} Acres`);
+    setText('dashIrrigation', user.irrigation);
+    setText('dashSoil', user.soil);
+
+    const dashCropGrid = document.getElementById('dashCropAllocations');
+    if (dashCropGrid) {
+        dashCropGrid.innerHTML = "";
+        (user.cropAllocations || []).forEach(c => {
+            const card = document.createElement('div');
+            card.className = "crop-alloc-card";
+            const tot = user.totalLand || 1;
+            card.innerHTML = `
+                <div class="crop-alloc-name">🌱 ${c.crop}</div>
+                <div class="crop-alloc-acres">🚜 ${c.acres} Acres (${((c.acres / tot) * 100).toFixed(0)}%)</div>
+            `;
+            dashCropGrid.appendChild(card);
+        });
+    }
+
+    setText('cardFarmerName', user.name);
+    setText('cardPhone', user.phone);
+    setText('cardLocation', user.location);
+    setText('cardLandSize', `${user.totalLand} Acres`);
+    setText('cardSoil', user.soil);
+    setText('cardIrrigation', user.irrigation);
+
+    const cardCropList = document.getElementById('cardCropList');
+    if (cardCropList) {
+        cardCropList.innerHTML = "";
+        (user.cropAllocations || []).forEach(c => {
+            const badge = document.createElement('span');
+            badge.className = "crop-badge";
+            badge.innerText = `${c.crop}: ${c.acres} Ac`;
+            cardCropList.appendChild(badge);
+        });
+    }
+
+    renderMandiPrices();
+}
+
+function saveFarmerProfile() {
+    if (!currentUser) return alert("Please sign in first.");
+
+    const names = document.querySelectorAll('.crop-name-input');
+    const acres = document.querySelectorAll('.crop-acres-input');
+
+    const updatedAllocations = [];
+    names.forEach((nameInput, i) => {
+        const cropName = nameInput.value.trim();
+        const cropAcres = parseFloat(acres[i].value) || 0;
+        if (cropName) updatedAllocations.push({ crop: cropName, acres: cropAcres });
+    });
+
+    const updated = {
+        ...currentUser,
+        name: document.getElementById('profName').value.trim(),
+        location: document.getElementById('profLocation').value.trim(),
+        totalLand: parseFloat(document.getElementById('profLandSize').value) || 0,
+        soil: document.getElementById('profSoil').value,
+        irrigation: document.getElementById('profIrrigation').value,
+        cropAllocations: updatedAllocations
+    };
+
+    const db = getAccounts();
+    db[currentUser.phone] = updated;
+    saveAccounts(db);
+
+    currentUser = updated;
+    renderProfileData(currentUser);
+    const navName = document.getElementById('navUserName');
+    if (navName) navName.innerText = `👨‍🌾 ${currentUser.name}`;
+    alert("✅ Farm Profile and Crop Land Allocations saved!");
+}
+
+// ==========================================
+// 9. Open-Meteo Weather Service
+// ==========================================
+async function fetchLiveWeather() {
+    const loader = document.getElementById('weatherLoader');
+    const content = document.getElementById('weatherContent');
+    if (loader) loader.style.display = 'block';
+    if (content) content.style.display = 'none';
+
+    let lat = 16.5062;
+    let lon = 80.6480;
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => getWeatherData(pos.coords.latitude, pos.coords.longitude),
+            () => getWeatherData(lat, lon)
+        );
+    } else {
+        getWeatherData(lat, lon);
+    }
+}
+
+async function getWeatherData(latitude, longitude) {
+    const loader = document.getElementById('weatherLoader');
+    const content = document.getElementById('weatherContent');
+
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const cur = data.current;
+
+        const tempEl = document.getElementById('weatherTemp');
+        const humEl = document.getElementById('weatherHumidity');
+        const windEl = document.getElementById('weatherWind');
+        const condEl = document.getElementById('weatherCondition');
+        const locEl = document.getElementById('weatherLocation');
+
+        if (tempEl) tempEl.innerText = `${Math.round(cur.temperature_2m)}°C`;
+        if (humEl) humEl.innerText = `${cur.relative_humidity_2m}%`;
+        if (windEl) windEl.innerText = `${cur.wind_speed_10m} km/h`;
+
+        let condition = "Sunny / Clear";
+        if (cur.weather_code >= 51 && cur.weather_code <= 67) condition = "Rain / Showers";
+        else if (cur.weather_code >= 1 && cur.weather_code <= 3) condition = "Partly Cloudy";
+        else if (cur.weather_code >= 95) condition = "Thunderstorm";
+
+        if (condEl) condEl.innerText = condition;
+        if (locEl) locEl.innerText = `${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`;
+
+        if (loader) loader.style.display = 'none';
+        if (content) content.style.display = 'block';
+    } catch (e) {
+        if (loader) loader.innerText = "Weather unavailable.";
+    }
+}
+
+// ==========================================
+// 10. Camera & Leaf Image Inputs
+// ==========================================
+function switchInputMode(mode) {
+    const uploadBtn = document.getElementById('uploadTabBtn');
+    const cameraBtn = document.getElementById('cameraTabBtn');
+    const uploadBox = document.getElementById('uploadContainer');
+    const cameraBox = document.getElementById('cameraContainer');
+
+    if (mode === 'upload') {
+        if (uploadBtn) uploadBtn.classList.add('active');
+        if (cameraBtn) cameraBtn.classList.remove('active');
+        if (uploadBox) uploadBox.style.display = 'block';
+        if (cameraBox) cameraBox.style.display = 'none';
+        stopCamera();
+    } else {
+        if (cameraBtn) cameraBtn.classList.add('active');
+        if (uploadBtn) uploadBtn.classList.remove('active');
+        if (uploadBox) uploadBox.style.display = 'none';
+        if (cameraBox) cameraBox.style.display = 'block';
+        startCamera();
+    }
+}
+
+async function startCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" }
+        });
+        const videoElement = document.getElementById('cameraStream');
+        if (videoElement) {
+            videoElement.srcObject = stream;
+            cameraStreamTrack = stream.getVideoTracks()[0];
+        }
+    } catch (err) {
+        alert("Camera unavailable: " + err.message);
+    }
+}
+
+function stopCamera() {
+    if (cameraStreamTrack) {
+        cameraStreamTrack.stop();
+        cameraStreamTrack = null;
+    }
+}
+
+function capturePhoto() {
+    const video = document.getElementById('cameraStream');
+    const canvas = document.getElementById('snapshotCanvas');
+    const preview = document.getElementById('preview');
+
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataUrl = canvas.toDataURL('image/jpeg');
+    if (preview) {
+        preview.src = dataUrl;
+        preview.style.display = 'block';
+    }
+    base64Image = dataUrl.split(',')[1];
+    stopCamera();
+}
+
+// ==========================================
+// 11. AI Diagnosis via Render Backend
+// ==========================================
+async function analyzeLeaf() {
+    const loadingState = document.getElementById('loadingState');
+    const resultsContainer = document.getElementById('results');
+
+    if (!base64Image) return alert('Please upload or capture a leaf photo first.');
+
+    stopVoicePlayback();
+    if (loadingState) loadingState.style.display = 'block';
+    if (resultsContainer) resultsContainer.style.display = 'none';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/diagnose`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                imageBase64: base64Image,
+                language: currentGlobalLang
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || "Diagnosis failed");
+        }
+
+        const parsed = await response.json();
+
+        const cropEl = document.getElementById('cropName');
+        const disEl = document.getElementById('diseaseName');
+        const actEl = document.getElementById('immediateAction');
+        const orgEl = document.getElementById('organicRemedy');
+        const prevEl = document.getElementById('preventionStrategy');
+
+        if (cropEl) cropEl.innerText = parsed.crop || "Crop";
+        if (disEl) disEl.innerText = parsed.status || "Healthy";
+        if (actEl) actEl.innerText = parsed.action || "--";
+        if (orgEl) orgEl.innerText = parsed.organic || "--";
+        if (prevEl) prevEl.innerText = parsed.prevention || "--";
+        
+        currentVoiceText = parsed.speech || `${parsed.crop}. ${parsed.status}. ${parsed.action}`;
+
+        if (loadingState) loadingState.style.display = 'none';
+        if (resultsContainer) resultsContainer.style.display = 'block';
+
+    } catch (err) {
+        if (loadingState) loadingState.style.display = 'none';
+        alert('Diagnostic failed: ' + err.message);
+    }
+}
+
+// ==========================================
+// 12. Speech Synthesis
+// ==========================================
+function toggleVoicePlayback() {
+    const playBtn = document.getElementById('playPauseBtn');
+    if (!currentVoiceText) return alert("No voice prescription available.");
+
+    if (isPaused) {
+        window.speechSynthesis.resume();
+        isPaused = false;
+        isSpeaking = true;
+        if (playBtn) playBtn.innerText = "⏸️ Pause";
+        return;
+    }
+
+    if (isSpeaking) {
+        window.speechSynthesis.pause();
+        isPaused = true;
+        isSpeaking = false;
+        if (playBtn) playBtn.innerText = "▶️ Resume";
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+    activeUtterance = new SpeechSynthesisUtterance(currentVoiceText);
+    activeUtterance.lang = currentLangCode;
+    activeUtterance.rate = 0.95;
+
+    activeUtterance.onstart = () => {
+        isSpeaking = true;
+        isPaused = false;
+        if (playBtn) playBtn.innerText = "⏸️ Pause";
+    };
+
+    activeUtterance.onend = activeUtterance.onerror = () => {
+        isSpeaking = false;
+        isPaused = false;
+        const dict = TRANSLATIONS[currentGlobalLang] || TRANSLATIONS["English"];
+        if (playBtn) playBtn.innerText = `▶️ ${dict.btnPlayVoice}`;
+    };
+
+    window.speechSynthesis.speak(activeUtterance);
+}
+
+function stopVoicePlayback() {
+    window.speechSynthesis.cancel();
+    isSpeaking = false;
+    isPaused = false;
+    const playBtn = document.getElementById('playPauseBtn');
+    if (playBtn) {
+        const dict = TRANSLATIONS[currentGlobalLang] || TRANSLATIONS["English"];
+        playBtn.innerText = `▶️ ${dict.btnPlayVoice}`;
+    }
+}
+
+// ==========================================
+// 13. Initialization & Event Listeners
+// ==========================================
+window.addEventListener('DOMContentLoaded', () => {
+    const imgInput = document.getElementById('imageInput');
+    if (imgInput) {
+        imgInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const preview = document.getElementById('preview');
+                    if (preview) {
+                        preview.src = evt.target.result;
+                        preview.style.display = 'block';
+                    }
+                    base64Image = evt.target.result.split(',')[1];
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    const savedLang = localStorage.getItem('agroai_selected_lang') || "English";
+    const langSelect = document.getElementById('globalLanguageSelect');
+    if (langSelect) langSelect.value = savedLang;
+    changeGlobalLanguage(savedLang);
+
+    const loggedPhone = localStorage.getItem('agroai_logged_phone');
+    const db = getAccounts();
+    if (loggedPhone && db[loggedPhone]) {
+        currentUser = db[loggedPhone];
+        initAuthenticatedSession(currentUser);
+    } else {
+        logoutFarmer();
+    }
+});        lblIrrigation: "Irrigation",
+        lblSoil: "Soil",
+        hdrLandAlloc: "🌾 Cultivated Land Allocation",
+        hdrWeather: "⛅ Real-Time Farm Weather",
+        btnRefresh: "Refresh",
+        msgWeatherLoading: "Fetching location weather...",
+        lblHumidity: "Humidity",
+        lblWind: "Wind",
+        lblGps: "GPS",
+        hdrInstantDiag: "🩺 Instant Leaf Diagnosis",
+        txtInstantDiagDesc: "Detect early blight, mildew, or viral leaf curl tailored to your active crop acreage.",
+        badgeInstantDiag: "Zero-Shot Multilingual Diagnosis",
+        btnLaunchDoc: "Launch AI Doctor",
+        hdrMandi: "📈 Mandi Commodity Prices",
+        txtFilteredCrops: "Filtered to crops in your farm profile",
+        txtAllCrops: "Showing all regional market prices",
+        btnSeeMore: "See All Crops",
+        btnSeeLess: "Show My Crops Only",
+        thCrop: "Crop",
+        thMarket: "Market / Mandi",
+        thPrice: "Modal Price (₹/Quintal)",
+        thTrend: "Trend",
+        hdrAdvisory: "📢 Agronomist Seasonal Alert",
+        txtAdvisory: "High humidity and intermittent cloud cover increase fungal spore dispersion. Inspect leaf undersides across your active crops and maintain weed-free drainage canals.",
+        profHeroTitle: "👨‍🌾 Farmer & Crop Land Distribution",
+        profHeroSub: "Specify exactly how many acres or hectares are allocated to each individual crop",
+        hdrEditFarm: "📝 Personal & Landholding Info",
+        lblFarmerName: "Farmer Full Name",
+        lblPhone: "Contact Number",
+        lblLocationField: "Village / District / State",
+        lblLandAcres: "Total Farm Land Size (Acres)",
+        lblSoilType: "Predominant Soil Type",
+        lblIrrigSource: "Primary Irrigation Source",
+        hdrLandPerCrop: "🌱 Land Allocated For Each Crop",
+        btnAddCrop: "Add Another Crop",
+        lblAllocated: "Allocated",
+        lblUnallocated: "Unallocated / Fallow",
+        btnSaveFarm: "Save All Farm Details",
+        hdrRecordCard: "📋 Farm Record Card",
+        lblContact: "Contact",
+        hdrDistList: "🌾 Crop-Wise Land Distribution:",
+        clinicHeroTitle: "🌿 AgroAI Crop Pathology Doctor",
+        clinicHeroSub: "Multilingual zero-shot leaf infection diagnostics with native speech guidance",
+        hdrSpecimen: "📸 1. Specimen Input",
+        lblInputMode: "Input Mode",
+        btnUploadMode: "Upload File",
+        btnCameraMode: "Live Camera",
+        lblSelectPhoto: "🍃 Select Leaf Photo",
+        btnCapture: "Capture Snapshot",
+        btnDiagnose: "Diagnose Pathology",
+        hdrReport: "🩺 2. Pathology Report",
+        msgAnalyzing: "🔬 Analyzing leaf pathology with Gemini Vision...",
+        lblDetectedCrop: "DETECTED CROP",
+        lblDiagnosis: "DIAGNOSIS",
+        badgeImmediate: "Immediate Action",
+        badgeOrganic: "Organic Remedy",
+        badgePrevention: "Long-Term Prevention",
+        btnPlayVoice: "Play Voice Prescription",
+        btnStopVoice: "Stop"
+    },
+    "Telugu (తెలుగు)": {
+        navDashboard: "డాష్‌బోర్డ్",
+        navProfile: "రైతు ప్రొఫైల్",
+        navClinic: "వ్యాధి నిపుణుడు",
+        btnLogout: "లాగౌట్",
+        authLoginTitle: "రైతు లాగిన్ (Sign In)",
+        authLoginSub: "మీ పంట వివరాలు మరియు AI నిర్ధారణలను పొందండి",
+        authSignupTitle: "కొత్త రైతు ఖాతా నమోదు",
+        authSignupSub: "మీ భూమి మరియు సాగు వివరాలను నమోదు చేయండి",
+        tabSignIn: "లాగిన్ (Sign In)",
+        tabSignUp: "కొత్త ఖాతా (Sign Up)",
+        lblPassword: "పాస్‌వర్డ్",
+        btnSignIn: "డాష్‌బోర్డ్‌లోకి ప్రవేశించండి",
+        btnSignUp: "ఖాతాను సృష్టించండి",
+        dashHeroTitle: "🌾 కిసాన్ స్మార్ట్ వ్యవసాయ పోర్టల్",
+        dashWelcome: "తిరిగి స్వాగతం",
+        dashBriefing: "ఇది మీ రోజువారీ వ్యవసాయ సమాచారం.",
+        lblLocation: "ప్రాంతం",
+        lblTotalLand: "మొత్తం భూమి",
+        lblIrrigation: "నీటిపారుదల",
+        lblSoil: "నేల రకం",
+        hdrLandAlloc: "🌾 సాగు భూమి కేటాయింపు",
+        hdrWeather: "⛅ నిజ-సమయ వ్యవసాయ వాతావరణం",
+        btnRefresh: "రిఫ్రెష్",
+        msgWeatherLoading: "వాతావరణ వివరాలు లోడ్ అవుతున్నాయి...",
+        lblHumidity: "తేమ",
+        lblWind: "గాలి వేగం",
+        lblGps: "జీపీఎస్",
+        hdrInstantDiag: "🩺 తక్షణ ఆకు వ్యాధి నిర్ధారణ",
+        txtInstantDiagDesc: "మీ పంటలపై తెగుళ్లు మరియు వైరల్ వ్యాధులను తక్షణమే గుర్తించండి.",
+        badgeInstantDiag: "బహుభాషా AI నిర్ధారణ",
+        btnLaunchDoc: "AI డాక్టర్‌ని ప్రారంభించండి",
+        hdrMandi: "📈 మార్కెట్ / మండి ధరలు",
+        txtFilteredCrops: "మీ ప్రొఫైల్‌లోని పంటల ధరలు మాత్రమే",
+        txtAllCrops: "అన్ని ప్రాంతీయ మార్కెట్ ధరలు",
+        btnSeeMore: "అన్ని పంటల ధరలు చూడండి",
+        btnSeeLess: "నా పంటల ధరలు మాత్రమే",
+        thCrop: "పంట",
+        thMarket: "మార్కెట్ / మండి",
+        thPrice: "సగటు ధర (₹/క్వింటాల్)",
+        thTrend: "ధోరణి",
+        hdrAdvisory: "📢 వ్యవసాయ శాస్త్రవేత్తల సూచన",
+        txtAdvisory: "అధిక తేమ వల్ల శిలీంధ్ర వ్యాధులు వ్యాపించే అవకాశం ఉంది. ఆకుల కింద భాగాన్ని క్రమం తప్పకుండా పరిశీలించండి.",
+        profHeroTitle: "👨‍🌾 రైతు & పంటల భూమి వివరాలు",
+        profHeroSub: "ప్రతి పంటకు ఎన్ని ఎకరాల భూమి కేటాయించారో నమోదు చేయండి",
+        hdrEditFarm: "📝 వ్యక్తిగత & భూమి వివరాలు",
+        lblFarmerName: "రైతు పూర్తి పేరు",
+        lblPhone: "సంప్రదింపు నంబర్",
+        lblLocationField: "గ్రామం / జిల్లా / రాష్ట్రం",
+        lblLandAcres: "మొత్తం భూమి పరిమాణం (ఎకరాలు)",
+        lblSoilType: "ప్రధాన నేల రకం",
+        lblIrrigSource: "ప్రధాన నీటి వనరు",
+        hdrLandPerCrop: "🌱 ప్రతి పంటకు కేటాయించిన భూమి",
+        btnAddCrop: "మరొక పంటను జోడించండి",
+        lblAllocated: "కేటాయించినది",
+        lblUnallocated: "మిగిలిన / ఖాళీ భూమి",
+        btnSaveFarm: "వివరాలను సేవ్ చేయండి",
+        hdrRecordCard: "📋 రైతు రికార్డు కార్డు",
+        lblContact: "ఫోన్",
+        hdrDistList: "🌾 పంటల వారీగా భూమి కేటాయింపు:",
+        clinicHeroTitle: "🌿 ఆగ్రో AI పంట వ్యాధి డాక్టర్",
+        clinicHeroSub: "వ్యాధి నిర్ధారణ మరియు మీ మాతృభాషలో వాయిస్ సూచనలు",
+        hdrSpecimen: "📸 1. ఆకు నమూనా సమర్పించండి",
+        lblInputMode: "ఇన్‌పుట్ విధానం",
+        btnUploadMode: "ఫోటో అప్‌లోడ్",
+        btnCameraMode: "లైవ్ కెమెరా",
+        lblSelectPhoto: "🍃 ఆకు ఫోటో ఎంచుకోండి",
+        btnCapture: "ఫోటో తీయండి",
+        btnDiagnose: "వ్యాధిని నిర్ధారించండి",
+        hdrReport: "🩺 2. వ్యాధి నిర్ధారణ నివేదిక",
+        msgAnalyzing: "🔬 ఆకు వ్యాధిని విశ్లేషిస్తోంది...",
+        lblDetectedCrop: "గుర్తించిన పంట",
+        lblDiagnosis: "వ్యాధి నిర్ధారణ",
+        badgeImmediate: "తక్షణ చర్య",
+        badgeOrganic: "సేంద్రీయ చికిత్స",
+        badgePrevention: "దీర్ఘకాలిక నివారణ",
+        btnPlayVoice: "వాయిస్ సూచనలు వినండి",
+        btnStopVoice: "ఆపివేయి"
+    },
+    "Hindi (हिन्दी)": {
+        navDashboard: "डैशबोर्ड",
+        navProfile: "किसान प्रोफ़ाइल",
+        navClinic: "रोग डॉक्टर",
+        btnLogout: "लॉगआउट",
+        authLoginTitle: "किसान साइन इन (Sign In)",
+        authLoginSub: "अपने खेत के रिकॉर्ड और AI रोग निदान तक पहुंचें",
+        authSignupTitle: "नया किसान खाता बनाएं",
+        authSignupSub: "अपनी कृषि भूमि और फसलों का विवरण दर्ज करें",
+        tabSignIn: "साइन इन (Sign In)",
+        tabSignUp: "नया खाता (Sign Up)",
+        lblPassword: "पासवर्ड",
+        btnSignIn: "डैशबोर्ड में प्रवेश करें",
+        btnSignUp: "खाता बनाएं",
+        dashHeroTitle: "🌾 किसान स्मार्ट फार्म पोर्टल",
+        dashWelcome: "वापसी पर स्वागत है",
+        dashBriefing: "यह आपकी दैनिक कृषि रिपोर्ट है।",
+        lblLocation: "स्थान",
+        lblTotalLand: "कुल भूमि",
+        lblIrrigation: "सिंचाई स्रोत",
+        lblSoil: "मिट्टी का प्रकार",
+        hdrLandAlloc: "🌾 बोई गई भूमि का आवंटन",
+        hdrWeather: "⛅ खेत का मौसम",
+        btnRefresh: "रिफ्रेश",
+        msgWeatherLoading: "मौसम की जानकारी लोड हो रही है...",
+        lblHumidity: "नमी",
+        lblWind: "हवा की गति",
+        lblGps: "जीपीएस",
+        hdrInstantDiag: "🩺 तत्काल पत्ती रोग निदान",
+        txtInstantDiagDesc: "अपनी फसलों पर झुलसा, फफूंद और वायरस रोगों की तुरंत जांच करें।",
+        badgeInstantDiag: "बहुभाषी AI निदान",
+        btnLaunchDoc: "AI डॉक्टर शुरू करें",
+        hdrMandi: "📈 मंडी भाव एवं जिंस दरें",
+        txtFilteredCrops: "केवल आपकी बोई गई फसलों के भाव",
+        txtAllCrops: "सभी क्षेत्रीय मंडी भाव",
+        btnSeeMore: "सभी फसलों के भाव देखें",
+        btnSeeLess: "केवल मेरी फसलें दिखाएं",
+        thCrop: "फसल",
+        thMarket: "मंडी",
+        thPrice: "औसत भाव (₹/क्विंटल)",
+        thTrend: "रुझान",
+        hdrAdvisory: "📢 कृषि वैज्ञानिक सलाह",
+        txtAdvisory: "अधिक नमी से फफूंद जनित रोगों का खतरा बढ़ता है। पत्तियों की निचली सतह की नियमित जांच करें।",
+        profHeroTitle: "👨‍🌾 किसान एवं फसल भूमि विवरण",
+        profHeroSub: "प्रत्येक फसल के लिए आवंटित भूमि एकड़ में दर्ज करें",
+        hdrEditFarm: "📝 व्यक्तिगत एवं कृषि विवरण",
+        lblFarmerName: "किसान का पूरा नाम",
+        lblPhone: "मोबाइल नंबर",
+        lblLocationField: "गाँव / ज़िला / राज्य",
+        lblLandAcres: "कुल भूमि का आकार (एकड़)",
+        lblSoilType: "मिट्टी का प्रकार",
+        lblIrrigSource: "सिंचाई का साधन",
+        hdrLandPerCrop: "🌱 प्रत्येक फसल के लिए आवंटित भूमि",
+        btnAddCrop: "अन्य फसल जोड़ें",
+        lblAllocated: "आवंटित भूमि",
+        lblUnallocated: "शेष / परती भूमि",
+        btnSaveFarm: "विवरण सुरक्षित करें",
+        hdrRecordCard: "📋 किसान रिकॉर्ड कार्ड",
+        lblContact: "संपर्क",
+        hdrDistList: "🌾 फसल-वार भूमि वितरण:",
+        clinicHeroTitle: "🌿 एग्रो AI फसल रोग डॉक्टर",
+        clinicHeroSub: "रोग पहचान और अपनी भाषा में ऑडियो परामर्श",
+        hdrSpecimen: "📸 1. पत्ती का नमूना दें",
+        lblInputMode: "इनपुट मोड",
+        btnUploadMode: "फ़ोटो अपलोड",
+        btnCameraMode: "लाइव कैमरा",
+        lblSelectPhoto: "🍃 पत्ती की फ़ोटो चुनें",
+        btnCapture: "फ़ोटो खींचें",
+        btnDiagnose: "रोग की जांच करें",
+        hdrReport: "🩺 2. रोग निदान रिपोर्ट",
+        msgAnalyzing: "🔬 पत्ती के नमूने का विश्लेषण जारी है...",
+        lblDetectedCrop: "पहचानी गई फसल",
+        lblDiagnosis: "रोग का नाम",
+        badgeImmediate: "त्वरित कदम",
+        badgeOrganic: "जैविक उपचार",
+        badgePrevention: "रोकथाम के उपाय",
+        btnPlayVoice: "ऑडियो सलाह सुनें",
+        btnStopVoice: "रोकें"
+    }
+};
+
+const ALL_MANDI_DATA = [
+    { cropKey: "cotton", crop: "⚪ Cotton (Medium Staple)", market: "Regional APMC Mandi", price: "₹7,150 - ₹7,400", trend: "▲ +1.1%", trendClass: "trend-up" },
+    { cropKey: "paddy", crop: "🌾 Paddy (Basmati/Common)", market: "Local Mandi", price: "₹2,280 - ₹3,600", trend: "▲ +2.4%", trendClass: "trend-up" },
+    { cropKey: "chili", crop: "🌶️ Red Chili (Guntur)", market: "Guntur Mandi", price: "₹18,500 - ₹21,000", trend: "▼ -0.8%", trendClass: "trend-down" },
+    { cropKey: "tomato", crop: "🍅 Tomato (Hybrid)", market: "Madanapalle / Kolar", price: "₹1,800 - ₹2,400", trend: "▲ +4.2%", trendClass: "trend-up" },
+    { cropKey: "potato", crop: "🥔 Potato (Jyoti)", market: "Central Wholesale", price: "₹1,450 - ₹1,680", trend: "● Stable", trendClass: "trend-neutral" },
+    { cropKey: "maize", crop: "🌽 Maize / Corn", market: "State Grain Mandi", price: "₹2,100 - ₹2,250", trend: "▲ +0.6%", trendClass: "trend-up" },
+    { cropKey: "wheat", crop: "🌾 Wheat (Sharbati)", market: "North Agricultural Mandi", price: "₹2,350 - ₹2,700", trend: "● Stable", trendClass: "trend-neutral" },
+    { cropKey: "sugarcane", crop: "🎋 Sugarcane (FRP)", market: "Cooperative Sugar Mill", price: "₹340 / Quintal", trend: "● Official FRP", trendClass: "trend-neutral" }
+];
+
+let currentUser = null;
+
+// ==========================================
 // 2. Client-Side Account Storage (Zero Serverless Native Crashes)
 // ==========================================
 function getAccounts() {
