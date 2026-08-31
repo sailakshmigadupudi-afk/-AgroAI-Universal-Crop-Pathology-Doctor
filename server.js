@@ -16,20 +16,32 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 
-// Serve static frontend files (HTML, CSS, JS) from the root directory
+// 🔍 GLOBAL REQUEST LOGGER: Prints every incoming HTTP request to Render logs
+app.use((req, res, next) => {
+    console.log(`📡 [${new Date().toLocaleTimeString()}] ${req.method} request to: ${req.url}`);
+    next();
+});
+
+// Serve static frontend files
 app.use(express.static(__dirname));
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // AI Leaf Pathology Diagnosis Route
 app.post('/api/diagnose', async (req, res) => {
+    console.log("==========================================");
+    console.log("📥 Received Leaf Diagnosis Request");
+    console.log("🌐 Selected Language:", req.body.language || 'English');
+
     try {
         const { imageBase64, language = 'English' } = req.body;
 
         if (!imageBase64) {
+            console.warn("⚠️ Diagnosis failed: No image payload provided");
             return res.status(400).json({ error: 'Image base64 data is required.' });
         }
 
+        console.log("🤖 Forwarding specimen to Gemini 2.5 Flash...");
         const model = genAI.getGenerativeModel({
             model: 'gemini-2.5-flash',
             generationConfig: { responseMimeType: 'application/json' }
@@ -60,14 +72,24 @@ Return ONLY a valid JSON object matching this schema:
         const rawText = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
         const parsed = JSON.parse(rawText);
 
+        console.log("✅ Diagnosis Output Generated:");
+        console.log("🌱 Crop:", parsed.crop);
+        console.log("🩺 Status:", parsed.status);
+        console.log("==========================================");
+
         res.json(parsed);
     } catch (error) {
-        console.error("Diagnosis error:", error);
+        console.error("❌ Diagnosis Backend Error:", error);
         res.status(500).json({ error: error.message || 'AI diagnosis failed' });
     }
 });
 
-// Serve frontend on root request
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', server: 'Render' });
+});
+
+// Serve frontend for all page navigations
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
