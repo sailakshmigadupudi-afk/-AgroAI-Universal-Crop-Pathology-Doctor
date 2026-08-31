@@ -349,7 +349,6 @@
     </div>
 </div>
 
-<!-- ================= EMBEDDED JAVASCRIPT LOGIC ================= -->
 <script>
 const API_BASE_URL = "/api";
 
@@ -1142,6 +1141,7 @@ function capturePhoto() {
     stopCamera();
 }
 
+// 🩺 AI Leaf Pathology Call (Transmits Farmer Identity)
 async function analyzeLeaf() {
     const loadingState = document.getElementById('loadingState');
     const resultsContainer = document.getElementById('results');
@@ -1158,7 +1158,9 @@ async function analyzeLeaf() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 imageBase64: base64Image,
-                language: currentGlobalLang
+                language: currentGlobalLang,
+                farmerName: currentUser ? currentUser.name : "Guest Farmer",
+                farmerPhone: currentUser ? currentUser.phone : "Anonymous"
             })
         });
 
