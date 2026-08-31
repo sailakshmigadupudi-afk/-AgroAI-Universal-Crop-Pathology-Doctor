@@ -16,32 +16,38 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 
-// 🔍 GLOBAL REQUEST LOGGER: Prints every incoming HTTP request to Render logs
+// 🔍 Live Request Logger: Prints every incoming HTTP call
 app.use((req, res, next) => {
-    console.log(`📡 [${new Date().toLocaleTimeString()}] ${req.method} request to: ${req.url}`);
+    console.log(`📡 [${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
     next();
 });
 
-// Serve static frontend files
+// Serve frontend files
 app.use(express.static(__dirname));
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // AI Leaf Pathology Diagnosis Route
 app.post('/api/diagnose', async (req, res) => {
+    const { 
+        imageBase64, 
+        language = 'English', 
+        farmerName = 'Unregistered Farmer', 
+        farmerPhone = 'N/A' 
+    } = req.body;
+
     console.log("==========================================");
-    console.log("📥 Received Leaf Diagnosis Request");
-    console.log("🌐 Selected Language:", req.body.language || 'English');
+    console.log(`👨‍🌾 Diagnosis Request from: ${farmerName} (${farmerPhone})`);
+    console.log(`🌐 Target Language: ${language}`);
+    console.log(`📦 Specimen Payload: ${imageBase64 ? `${(imageBase64.length / 1024).toFixed(1)} KB` : "0 KB"}`);
+
+    if (!imageBase64) {
+        console.warn("⚠️ Request rejected: No image base64 provided.");
+        return res.status(400).json({ error: 'Image base64 data is required.' });
+    }
 
     try {
-        const { imageBase64, language = 'English' } = req.body;
-
-        if (!imageBase64) {
-            console.warn("⚠️ Diagnosis failed: No image payload provided");
-            return res.status(400).json({ error: 'Image base64 data is required.' });
-        }
-
-        console.log("🤖 Forwarding specimen to Gemini 2.5 Flash...");
+        console.log("🤖 Processing pathology with Gemini 2.5 Flash...");
         const model = genAI.getGenerativeModel({
             model: 'gemini-2.5-flash',
             generationConfig: { responseMimeType: 'application/json' }
@@ -72,9 +78,8 @@ Return ONLY a valid JSON object matching this schema:
         const rawText = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
         const parsed = JSON.parse(rawText);
 
-        console.log("✅ Diagnosis Output Generated:");
-        console.log("🌱 Crop:", parsed.crop);
-        console.log("🩺 Status:", parsed.status);
+        console.log("✅ Diagnosis Finished:");
+        console.log(`🌱 Crop: ${parsed.crop} | 🩺 Status: ${parsed.status}`);
         console.log("==========================================");
 
         res.json(parsed);
@@ -89,12 +94,12 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', server: 'Render' });
 });
 
-// Serve frontend for all page navigations
+// Serve index.html for all other routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Start Express Server
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 AgroAI Server is live and listening on port ${PORT}`);
+    console.log(`🚀 AgroAI Server running on port ${PORT}`);
 });
