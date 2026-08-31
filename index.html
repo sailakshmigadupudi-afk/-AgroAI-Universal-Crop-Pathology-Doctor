@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroAI - Smart Farmer Dashboard & Clinic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <!-- Top Global Navigation & Language Selector Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">🌿 AgroAI</div>
+        <div class="nav-center" id="navCenterLinks" style="display: none;">
+            <button class="nav-tab active" id="tabHome" onclick="navigatePage('home')">🏠 <span data-i18n="navDashboard">Dashboard</span></button>
+            <button class="nav-tab" id="tabProfile" onclick="navigatePage('profile')">👨‍🌾 <span data-i18n="navProfile">Farmer Profile</span></button>
+            <button class="nav-tab" id="tabClinic" onclick="navigatePage('clinic')">🔬 <span data-i18n="navClinic">Disease Doctor</span></button>
+        </div>
+        <div class="nav-right">
+            <div class="lang-selector-wrapper">
+                <span style="font-size: 0.9rem;">🌐</span>
+                <select id="globalLanguageSelect" onchange="changeGlobalLanguage(this.value)">
+                    <option value="English">English</option>
+                    <option value="Telugu (తెలుగు)">Telugu (తెలుగు)</option>
+                    <option value="Hindi (हिन्दी)">Hindi (हिन्दी)</option>
+                </select>
+            </div>
+            <div id="userBadge" class="user-badge" style="display: none;">
+                <span id="navUserName">👨‍🌾 Farmer</span>
+                <button class="btn-logout" onclick="logoutFarmer()" data-i18n="btnLogout">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ================= PAGE 0: AUTHENTICATION (LOGIN / SIGNUP) ================= -->
+    <div id="authPage" class="page-view">
+        <div class="auth-card-container">
+            <div class="card auth-card">
+                <div class="auth-header">
+                    <div class="avatar-circle">🌾</div>
+                    <h2 id="authTitle" data-i18n="authLoginTitle">Farmer Sign In</h2>
+                    <p id="authSubtitle" class="sub-txt" data-i18n="authLoginSub">Access your personalised farm records & AI diagnostics</p>
+                </div>
+
+                <div class="toggle-group" style="margin: 1.2rem 0;">
+                    <button type="button" id="tabSignInBtn" class="toggle-btn active" onclick="switchAuthTab('signin')" data-i18n="tabSignIn">Sign In</button>
+                    <button type="button" id="tabSignUpBtn" class="toggle-btn" onclick="switchAuthTab('signup')" data-i18n="tabSignUp">New Farmer (Sign Up)</button>
+                </div>
+
+                <!-- Sign In Form -->
+                <form id="signInForm" onsubmit="handleSignIn(event)">
+                    <div class="form-group">
+                        <label for="loginPhone" data-i18n="lblPhone">Contact Number</label>
+                        <input type="text" id="loginPhone" placeholder="e.g. 9876543210" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPass" data-i18n="lblPassword">Password</label>
+                        <input type="password" id="loginPass" placeholder="Enter password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" data-i18n="btnSignIn">Sign In to Dashboard</button>
+                </form>
+
+                <!-- Sign Up Form -->
+                <form id="signUpForm" style="display: none;" onsubmit="handleSignUp(event)">
+                    <div class="form-group">
+                        <label for="regName" data-i18n="lblFarmerName">Farmer Full Name</label>
+                        <input type="text" id="regName" placeholder="e.g. Ramesh Patel" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPhone" data-i18n="lblPhone">Contact Number</label>
+                        <input type="text" id="regPhone" placeholder="e.g. 9876543210" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regLocation" data-i18n="lblLocationField">Village / District / State</label>
+                        <input type="text" id="regLocation" placeholder="e.g. Guntur, Andhra Pradesh" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regLandSize" data-i18n="lblLandAcres">Total Farm Land Size (Acres)</label>
+                        <input type="number" step="0.1" id="regLandSize" placeholder="e.g. 5.0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPass" data-i18n="lblPassword">Create Password</label>
+                        <input type="password" id="regPass" placeholder="Create a secure password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" data-i18n="btnSignUp">Create Farmer Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= PAGE 1: FARMER DASHBOARD ================= -->
+    <div id="homePage" class="page-view" style="display: none;">
+        <header class="hero">
+            <h1 data-i18n="dashHeroTitle">🌾 Kisan Smart Farm Portal</h1>
+            <p><span data-i18n="dashWelcome">Welcome back</span>, <b id="dashFarmerName">Farmer</b>! <span data-i18n="dashBriefing">Here is your daily field briefing.</span></p>
+        </header>
+
+        <div class="profile-summary-bar">
+            <div class="summary-pill">📍 <span data-i18n="lblLocation">Location</span>: <b id="dashLocation">--</b></div>
+            <div class="summary-pill">🚜 <span data-i18n="lblTotalLand">Total Land</span>: <b id="dashLandSize">--</b></div>
+            <div class="summary-pill">💧 <span data-i18n="lblIrrigation">Irrigation</span>: <b id="dashIrrigation">--</b></div>
+            <div class="summary-pill">🧱 <span data-i18n="lblSoil">Soil</span>: <b id="dashSoil">--</b></div>
+        </div>
+
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <h2 data-i18n="hdrLandAlloc">🌾 Cultivated Land Allocation</h2>
+            <div id="dashCropAllocations" class="crop-pill-grid"></div>
+        </div>
+
+        <div class="grid dashboard-grid">
+            <div class="card weather-card">
+                <div class="card-header">
+                    <h2 data-i18n="hdrWeather">⛅ Real-Time Farm Weather</h2>
+                    <button class="btn-refresh" onclick="fetchLiveWeather()">🔄 <span data-i18n="btnRefresh">Refresh</span></button>
+                </div>
+                <div id="weatherLoader" class="loading-inline" data-i18n="msgWeatherLoading">Fetching location weather...</div>
+                <div id="weatherContent" style="display: none;">
+                    <div class="weather-main">
+                        <div class="temp" id="weatherTemp">--°C</div>
+                        <div class="condition-badge" id="weatherCondition">Clear Sky</div>
+                    </div>
+                    <div class="weather-metrics">
+                        <div class="metric-pill">💧 <span data-i18n="lblHumidity">Humidity</span>: <b id="weatherHumidity">--%</b></div>
+                        <div class="metric-pill">💨 <span data-i18n="lblWind">Wind</span>: <b id="weatherWind">-- km/h</b></div>
+                        <div class="metric-pill">📍 <span data-i18n="lblGps">GPS</span>: <b id="weatherLocation">Local Field</b></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card clinic-cta-card">
+                <h2 data-i18n="hdrInstantDiag">🩺 Instant Leaf Diagnosis</h2>
+                <p data-i18n="txtInstantDiagDesc">Detect early blight, mildew, or viral leaf curl tailored to your active crop acreage.</p>
+                <div class="cta-badge" data-i18n="badgeInstantDiag">Zero-Shot Multilingual Diagnosis</div>
+                <button class="btn btn-primary" onclick="navigatePage('clinic')"><span data-i18n="btnLaunchDoc">Launch AI Doctor</span> →</button>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-header">
+                <div>
+                    <h2 data-i18n="hdrMandi">📈 Mandi Commodity Prices (Your Crops)</h2>
+                    <span id="mandiScopeLabel" class="sub-txt" data-i18n="txtFilteredCrops">Filtered to crops in your farm profile</span>
+                </div>
+                <button type="button" id="toggleMorePricesBtn" class="btn-refresh" onclick="toggleAllCropPrices()">👁️ <span data-i18n="btnSeeMore">See All Crops</span></button>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="market-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="thCrop">Crop</th>
+                            <th data-i18n="thMarket">Market / Mandi</th>
+                            <th data-i18n="thPrice">Modal Price (₹/Quintal)</th>
+                            <th data-i18n="thTrend">Trend</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mandiTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="advisory-banner">
+            <h3 data-i18n="hdrAdvisory">📢 Agronomist Seasonal Alert</h3>
+            <p data-i18n="txtAdvisory">High humidity and intermittent cloud cover increase fungal spore dispersion. Inspect leaf undersides across your active crops and maintain weed-free drainage canals.</p>
+        </div>
+    </div>
+
+    <!-- ================= PAGE 2: FARMER PROFILE ================= -->
+    <div id="profilePage" class="page-view" style="display: none;">
+        <header class="hero" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+            <h1 data-i18n="profHeroTitle">👨‍🌾 Farmer & Crop Land Distribution</h1>
+            <p data-i18n="profHeroSub">Specify exactly how many acres or hectares are allocated to each individual crop</p>
+        </header>
+
+        <main class="grid">
+            <section class="card">
+                <h2 data-i18n="hdrEditFarm">📝 Personal & Landholding Info</h2>
+                
+                <div class="form-group">
+                    <label for="profName" data-i18n="lblFarmerName">Farmer Full Name</label>
+                    <input type="text" id="profName" placeholder="e.g. Ramesh Patel">
+                </div>
+
+                <div class="form-group">
+                    <label for="profPhone" data-i18n="lblPhone">Contact Number</label>
+                    <input type="text" id="profPhone" disabled style="background: #f1f5f9; cursor: not-allowed;">
+                </div>
+
+                <div class="form-group">
+                    <label for="profLocation" data-i18n="lblLocationField">Village / District / State</label>
+                    <input type="text" id="profLocation" placeholder="e.g. Guntur, Andhra Pradesh">
+                </div>
+
+                <div class="form-group">
+                    <label for="profLandSize" data-i18n="lblLandAcres">Total Farm Land Size (Acres)</label>
+                    <input type="number" step="0.1" id="profLandSize" placeholder="e.g. 5.0" oninput="updateAllocationSummary()">
+                </div>
+
+                <div class="form-group">
+                    <label for="profSoil" data-i18n="lblSoilType">Predominant Soil Type</label>
+                    <select id="profSoil">
+                        <option value="Black Cotton Soil">Black Cotton Soil (Regur)</option>
+                        <option value="Red Sandy Loam">Red Sandy Loam</option>
+                        <option value="Alluvial Soil">Alluvial Soil</option>
+                        <option value="Clay Loam">Clay Loam</option>
+                        <option value="Laterite Soil">Laterite Soil</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="profIrrigation" data-i18n="lblIrrigSource">Primary Irrigation Source</label>
+                    <select id="profIrrigation">
+                        <option value="Borewell / Tube Well">Borewell / Tube Well</option>
+                        <option value="Drip / Micro-Irrigation">Drip / Micro-Irrigation</option>
+                        <option value="Canal Irrigation">Canal Irrigation</option>
+                        <option value="Rainfed (Monsoon Dependent)">Rainfed (Monsoon Dependent)</option>
+                    </select>
+                </div>
+
+                <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #e2e8f0;">
+
+                <h2 data-i18n="hdrLandPerCrop">🌱 Land Allocated For Each Crop</h2>
+                <div id="cropAllocationList"></div>
+
+                <button type="button" class="btn btn-secondary" style="margin-bottom: 1.2rem;" onclick="addCropRow()">➕ <span data-i18n="btnAddCrop">Add Another Crop</span></button>
+
+                <div class="allocation-calc-box">
+                    <div><span data-i18n="lblTotalLand">Total Land</span>: <b id="calcTotalLand">5.0 Acres</b></div>
+                    <div><span data-i18n="lblAllocated">Allocated</span>: <b id="calcAllocatedLand">0.0 Acres</b></div>
+                    <div><span data-i18n="lblUnallocated">Unallocated / Fallow</span>: <b id="calcUnallocatedLand" style="color: #059669;">5.0 Acres</b></div>
+                </div>
+
+                <button type="button" class="btn btn-primary" style="margin-top: 1.2rem;" onclick="saveFarmerProfile()">💾 <span data-i18n="btnSaveFarm">Save All Farm Details</span></button>
+            </section>
+
+            <section class="card">
+                <h2 data-i18n="hdrRecordCard">📋 Farm Record Card</h2>
+                <div class="farm-card-display">
+                    <div class="avatar-header">
+                        <div class="avatar-circle">👨‍🌾</div>
+                        <div>
+                            <h3 id="cardFarmerName">Ramesh Patel</h3>
+                            <span id="cardLocation" class="sub-txt">Guntur, Andhra Pradesh</span>
+                        </div>
+                    </div>
+
+                    <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid #e2e8f0;">
+
+                    <div class="record-row">
+                        <span class="record-lbl" data-i18n="lblTotalLand">🚜 Total Land:</span>
+                        <b id="cardLandSize">5.0 Acres</b>
+                    </div>
+                    <div class="record-row">
+                        <span class="record-lbl" data-i18n="lblSoil">🧱 Soil Class:</span>
+                        <b id="cardSoil">Black Cotton Soil</b>
+                    </div>
+                    <div class="record-row">
+                        <span class="record-lbl" data-i18n="lblIrrigation">💧 Water Source:</span>
+                        <b id="cardIrrigation">Drip / Micro-Irrigation</b>
+                    </div>
+                    <div class="record-row">
+                        <span class="record-lbl" data-i18n="lblContact">📞 Contact:</span>
+                        <b id="cardPhone">+91 98765 43210</b>
+                    </div>
+
+                    <h4 style="margin: 1.2rem 0 0.6rem 0; font-size: 0.95rem; color: #334155;" data-i18n="hdrDistList">🌾 Crop-Wise Land Distribution:</h4>
+                    <div id="cardCropList" class="crop-badge-container"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ================= PAGE 3: DISEASE DETECTION ================= -->
+    <div id="clinicPage" class="page-view" style="display: none;">
+        <header class="hero hero-clinic">
+            <h1 data-i18n="clinicHeroTitle">🌿 AgroAI Crop Pathology Doctor</h1>
+            <p data-i18n="clinicHeroSub">Multilingual zero-shot leaf infection diagnostics with native speech guidance</p>
+        </header>
+
+        <main class="grid">
+            <section class="card">
+                <h2 data-i18n="hdrSpecimen">📸 1. Specimen Input</h2>
+
+                <div class="form-group">
+                    <label data-i18n="lblInputMode">Input Mode</label>
+                    <div class="toggle-group">
+                        <button type="button" id="uploadTabBtn" class="toggle-btn active" onclick="switchInputMode('upload')"><span data-i18n="btnUploadMode">Upload File</span></button>
+                        <button type="button" id="cameraTabBtn" class="toggle-btn" onclick="switchInputMode('camera')"><span data-i18n="btnCameraMode">Live Camera</span></button>
+                    </div>
+                </div>
+
+                <div id="uploadContainer" class="form-group">
+                    <label for="imageInput" data-i18n="lblSelectPhoto">🍃 Select Leaf Photo</label>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+
+                <div id="cameraContainer" class="form-group" style="display: none;">
+                    <video id="cameraStream" autoplay playsinline></video>
+                    <button type="button" class="btn btn-secondary" onclick="capturePhoto()">📷 <span data-i18n="btnCapture">Capture Snapshot</span></button>
+                    <canvas id="snapshotCanvas" style="display: none;"></canvas>
+                </div>
+
+                <img id="preview" class="preview-box" alt="Specimen Preview">
+                
+                <button type="button" class="btn btn-primary" style="margin-top: 1rem;" onclick="analyzeLeaf()">🔬 <span data-i18n="btnDiagnose">Diagnose Pathology</span></button>
+            </section>
+
+            <section class="card">
+                <h2 data-i18n="hdrReport">🩺 2. Pathology Report</h2>
+                <div id="loadingState" class="loading" data-i18n="msgAnalyzing">🔬 Analyzing leaf pathology with Gemini Vision...</div>
+                
+                <div id="results" style="display: none;">
+                    <div class="metric-row">
+                        <div class="metric-card success">
+                            <span class="metric-label" data-i18n="lblDetectedCrop">DETECTED CROP</span>
+                            <h3 id="cropName">--</h3>
+                        </div>
+                        <div class="metric-card danger">
+                            <span class="metric-label" data-i18n="lblDiagnosis">DIAGNOSIS</span>
+                            <h3 id="diseaseName">--</h3>
+                        </div>
+                    </div>
+
+                    <div class="action-box immediate">
+                        <span class="badge badge-red" data-i18n="badgeImmediate">Immediate Action</span>
+                        <p id="immediateAction">--</p>
+                    </div>
+
+                    <div class="action-box organic">
+                        <span class="badge badge-green" data-i18n="badgeOrganic">Organic Remedy</span>
+                        <p id="organicRemedy">--</p>
+                    </div>
+
+                    <div class="action-box prevention">
+                        <span class="badge badge-blue" data-i18n="badgePrevention">Long-Term Prevention</span>
+                        <p id="preventionStrategy">--</p>
+                    </div>
+
+                    <div class="voice-controls-container">
+                        <button type="button" id="playPauseBtn" class="btn btn-voice" onclick="toggleVoicePlayback()">
+                            ▶️ <span data-i18n="btnPlayVoice">Play Voice Prescription</span>
+                        </button>
+                        <button type="button" id="stopBtn" class="btn btn-stop" onclick="stopVoicePlayback()">
+                            ⏹️ <span data-i18n="btnStopVoice">Stop</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

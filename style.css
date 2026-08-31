@@ -1,0 +1,586 @@
+/* ==========================================
+   1. Reset & Global Typography
+   ========================================== */
+   * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', 'Noto Sans Telugu', 'Noto Sans Devanagari', sans-serif;
+    background: #f8fafc;
+    color: #1e293b;
+    padding: 1.5rem 1rem;
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* ==========================================
+   2. Top Navigation Bar
+   ========================================== */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    padding: 0.8rem 1.4rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.nav-brand {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #059669;
+}
+
+.nav-center {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.lang-selector-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #f1f5f9;
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+}
+
+.lang-selector-wrapper select {
+    border: none;
+    background: transparent;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #0f172a;
+    padding: 0.3rem;
+    outline: none;
+    cursor: pointer;
+}
+
+.user-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 0.3rem 0.7rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.btn-logout {
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+    transition: background 0.2s;
+}
+
+.btn-logout:hover {
+    background: #fecaca;
+}
+
+.nav-tab {
+    background: transparent;
+    border: none;
+    padding: 0.55rem 1.1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-family: inherit;
+    color: #64748b;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.nav-tab.active {
+    background: #10b981;
+    color: #ffffff;
+}
+
+/* ==========================================
+   3. Hero Banners
+   ========================================== */
+.hero {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    color: #ffffff;
+    margin-bottom: 1.2rem;
+    box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.2);
+}
+
+.hero-clinic {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.hero h1 {
+    font-size: 1.95rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+}
+
+.hero p {
+    font-size: 0.98rem;
+    opacity: 0.95;
+}
+
+/* ==========================================
+   4. Authentication (Login / Signup) Cards
+   ========================================== */
+.auth-card-container {
+    max-width: 460px;
+    margin: 2.5rem auto;
+}
+
+.auth-card {
+    padding: 2.2rem;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.auth-header .avatar-circle {
+    margin: 0 auto 0.8rem auto;
+}
+
+/* ==========================================
+   5. Dashboard Layouts & Quick-Bars
+   ========================================== */
+.profile-summary-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    background: #ffffff;
+    padding: 0.9rem 1.2rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 1.2rem;
+}
+
+.summary-pill {
+    background: #f1f5f9;
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: #334155;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+}
+
+.card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+/* ==========================================
+   6. Crop Land Allocations & Repeater
+   ========================================== */
+.crop-pill-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.9rem;
+    margin-top: 0.8rem;
+}
+
+.crop-alloc-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.9rem;
+    border-left: 4px solid #10b981;
+}
+
+.crop-alloc-name {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 1rem;
+}
+
+.crop-alloc-acres {
+    font-size: 0.9rem;
+    color: #047857;
+    font-weight: 600;
+    margin-top: 0.2rem;
+}
+
+.crop-row-inputs {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+    align-items: center;
+}
+
+.btn-remove-crop {
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.allocation-calc-box {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.crop-badge-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.crop-badge {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* ==========================================
+   7. Weather & Advisory Elements
+   ========================================== */
+.weather-main {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.weather-main .temp {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.condition-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    font-weight: 600;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.88rem;
+}
+
+.weather-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.metric-pill {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.clinic-cta-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.cta-badge {
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.advisory-banner {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    border-radius: 8px;
+    padding: 1.2rem;
+    margin-top: 1.5rem;
+}
+
+.advisory-banner h3 {
+    color: #b45309;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+}
+
+.advisory-banner p {
+    color: #78350f;
+    font-size: 0.9rem;
+}
+
+/* ==========================================
+   8. Mandi Price Table
+   ========================================== */
+.table-responsive {
+    overflow-x: auto;
+    margin-top: 0.8rem;
+}
+
+.market-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+
+.market-table th, .market-table td {
+    padding: 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.market-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.trend-up { color: #16a34a; font-weight: 600; }
+.trend-down { color: #dc2626; font-weight: 600; }
+.trend-neutral { color: #64748b; font-weight: 600; }
+
+/* ==========================================
+   9. Farmer Record Display
+   ========================================== */
+.farm-card-display {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 1.2rem;
+    border: 1px solid #e2e8f0;
+}
+
+.avatar-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.avatar-circle {
+    font-size: 2.2rem;
+    background: #e2e8f0;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.sub-txt {
+    color: #64748b;
+    font-size: 0.84rem;
+}
+
+.record-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.7rem;
+    font-size: 0.92rem;
+}
+
+.record-lbl {
+    color: #64748b;
+}
+
+/* ==========================================
+   10. Forms, Buttons & Toggles
+   ========================================== */
+.form-group { margin-bottom: 1.2rem; }
+
+label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.88rem;
+    margin-bottom: 0.4rem;
+}
+
+input[type="text"], 
+input[type="number"], 
+input[type="password"], 
+input[type="file"], 
+select {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    background: #ffffff;
+}
+
+input:focus, select:focus {
+    border-color: #10b981;
+}
+
+.toggle-group {
+    display: flex;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    padding: 0.25rem;
+    border-radius: 8px;
+}
+
+.toggle-btn {
+    flex: 1;
+    border: none;
+    padding: 0.55rem;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: inherit;
+    color: #64748b;
+    transition: 0.2s;
+}
+
+.toggle-btn.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    padding: 0.8rem 1.4rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: 0.2s;
+}
+
+.btn-primary { background: #10b981; color: #ffffff; }
+.btn-primary:hover { background: #059669; }
+
+.btn-secondary { background: #475569; color: #ffffff; }
+.btn-secondary:hover { background: #334155; }
+
+.btn-refresh {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+}
+.btn-refresh:hover { background: #e2e8f0; }
+
+.voice-controls-container {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.btn-voice { flex: 2; background: #0284c7; color: #ffffff; }
+.btn-voice:hover { background: #0369a1; }
+
+.btn-stop { flex: 1; background: #ef4444; color: #ffffff; }
+.btn-stop:hover { background: #dc2626; }
+
+/* ==========================================
+   11. Camera, Media & Diagnostic Cards
+   ========================================== */
+.preview-box, #cameraStream {
+    width: 100%;
+    max-height: 250px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    margin-top: 0.5rem;
+}
+
+.preview-box { display: none; }
+
+.metric-row { display: flex; gap: 1rem; margin-bottom: 1.2rem; }
+.metric-card { flex: 1; padding: 0.9rem; border-radius: 8px; }
+.metric-card.success { background: #ecfdf5; color: #065f46; }
+.metric-card.danger { background: #fef2f2; color: #991b1b; }
+.metric-label { font-size: 0.75rem; font-weight: 700; display: block; margin-bottom: 0.2rem; }
+
+.action-box {
+    padding: 0.9rem 1.1rem;
+    border-radius: 8px;
+    margin-bottom: 0.8rem;
+    background: #f8fafc;
+    border-left: 4px solid #cbd5e1;
+}
+
+.action-box.immediate { border-left-color: #ef4444; }
+.action-box.organic { border-left-color: #22c55e; }
+.action-box.prevention { border-left-color: #0ea5e9; }
+
+.badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+    display: inline-block;
+}
+.badge-red { color: #dc2626; }
+.badge-green { color: #15803d; }
+.badge-blue { color: #0369a1; }
+
+.loading { display: none; text-align: center; font-weight: 600; color: #059669; padding: 2.5rem 0; }
+.loading-inline { color: #64748b; font-size: 0.9rem; padding: 1rem 0; }
