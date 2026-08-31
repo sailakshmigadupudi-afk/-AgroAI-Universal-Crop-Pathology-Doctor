@@ -1,40 +1,71 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import sqlite3 from 'sqlite3';
 import { GoogleGenAI } from '@google/genai';
 
 dotenv.config();
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 
-// SQLite Database in /tmp (Required for Vercel serverless read/write execution)
-const db = new sqlite3.Database('/tmp/agroai.db', (err) => {
-    if (err) console.error("Database connection error:", err.message);
-});
-
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS farmers (
-        phone TEXT PRIMARY KEY,
-        name TEXT,
-        password TEXT,
-        location TEXT,
-        total_land REAL,
-        soil TEXT,
-        irrigation TEXT,
-        crop_allocations TEXT
-    )`);
-});
-
-// Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// ==========================================
-// 1. AI Leaf Pathology Diagnosis Endpoint
+// AI Leaf Pathology Diagnosis Route
+app.post('/api/diagnose', async (req, res) => {
+    try {
+        const { imageBase64, language = 'English' } = req.body;
+
+        if (!imageBase64) {
+            return res.status(400).json({ error: 'Image base64 data is required.' });
+        }
+
+        const prompt = `You are an expert plant pathologist and agronomist. Analyze this leaf specimen.
+Identify the crop/plant species and diagnose if it is healthy or has an infection.
+Provide ALL explanations, labels, and text values in ${language}.
+Return ONLY a valid JSON object matching this schema (no markdown formatting, no backticks):
+{
+  "crop": "Crop Name in ${language}",
+  "status": "Disease Name or Healthy in ${language}",
+  "action": "Immediate treatment/pruning step in ${language}",
+  "organic": "Organic remedy/spray in ${language}",
+  "prevention": "Long-term prevention in ${language}",
+  "speech": "2-sentence clear spoken summary in ${language}"
+}`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                { text: prompt },
+                {
+                    inlineData: {
+                        mimeType: 'image/jpeg',
+                        data: imageBase64
+                    }
+                }
+            ],
+            config: {
+                responseMimeType: 'application/json'
+            }
+        });
+
+        const rawText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(rawText);
+
+        res.json(parsed);
+    } catch (error) {
+        console.error("Diagnosis error:", error);
+        res.status(500).json({ error: error.message || 'AI diagnosis failed' });
+    }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', serverless: true });
+});
+
+export default app;// 1. AI Leaf Pathology Diagnosis Endpoint
 // ==========================================
 app.post('/api/diagnose', async (req, res) => {
     try {
